@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Poe trade finer-search-options
 // @namespace    http://tampermonkey.net/
-// @version      2.0.1
+// @version      2.0.2
 // @updateURL    https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @downloadURL  https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @description  enables finer search options in Path of exile official trade site, allowing filtering in/out mods directly from the current search result list
@@ -19,12 +19,37 @@
     //---------HTML---------//
     const scriptStyle=$(`
         <style>
-            .finer-add-filter{ background: rgba(2,  93, 34, 0.75); }
-            .finer-remove-filter{ background: rgba(93, 2,  2,  0.75); }
-            .finer-filter-buttons{ left: auto; }
+            #trade .finer-filter-buttons {
+                display: inline-flex;
+                gap: 2px;
+                margin-right: 3px;
+                vertical-align: top;
+            }
+            #trade .finer-filterable > .finer-filter-buttons {
+                position: absolute;
+                top: 0;
+                right: 8px;
+                margin-right: 0;
+            }
+            #trade .finer-filter-buttons > button {
+                appearance: none;
+                min-width: 28px;
+                height: 16px;
+                margin: 0;
+                padding: 0 9px;
+                border: 1px solid grey;
+                border-radius: 0;
+                box-shadow: none;
+                color: white;
+                font: inherit;
+                line-height: 1;
+                cursor: pointer;
+            }
+            #trade .finer-filter-buttons > .finer-add-filter { background: rgba(2, 93, 34, 0.75); }
+            #trade .finer-filter-buttons > .finer-remove-filter { background: rgba(93, 2, 2, 0.75); }
+            .finer-filterable { position: relative; }
             .finer-filterable:hover { background: rgba(255, 255, 255, 0.2); }
             .finer-filtered{ background-color: rgba(0, 136, 0, .25); }
-            .btn-finer-search { padding: 0 10px;    line-height: 1;    color: white;    outline: solid 1px grey;}
             .hand{ cursor: pointer; }
             .finer-search-global-toggle-collapsed { position: absolute;    right: 5px;    top: 5px;    width: 15px;    height: 15px;    background: rgb(56, 35, 4);    cursor:pointer; }
             .upArr::before{ content:"\\25BE";    position: absolute;    font-size: 25px;    top: -10px;    left: -3px; }
@@ -108,9 +133,9 @@
         </div>
      `);
     const buttonsSpan = $(`
-        <span class="lc l finer-filter-buttons">
-            <button type="button" class="d btn-finer-search hand finer-add-filter" title="Include this mod" aria-label="Include this mod">+</button>
-            <button type="button" class="d btn-finer-search hand finer-remove-filter" title="Exclude this mod" aria-label="Exclude this mod">-</button>
+        <span class="finer-filter-buttons">
+            <button type="button" class="finer-add-filter" title="Include this mod" aria-label="Include this mod">+</button>
+            <button type="button" class="finer-remove-filter" title="Exclude this mod" aria-label="Exclude this mod">-</button>
         </span>
     `);
 
@@ -160,7 +185,7 @@
     $(document)
         .on('mouseenter', '#trade .resultset > .row', function(){ checkFilters(this) })
         .on('mouseenter', searchMod, function(){ addButtons(this) })
-        .on('mouseleave', searchMod, function(){ $(this).children('.finer-filter-buttons').detach() })
+        .on('mouseleave', searchMod, function(){ $(this).find('.finer-filter-buttons').detach() })
         .on('click', '.finer-filter-buttons button', function(e){ addOrRemoveFilter(e, this) })
         //-----------step 4 : on button click in the global div, add the corresponding mods to the search
         .on('click','#finer-search-global > .finer-search-global-body > .finer-search-global-section.mods > .finer-search-global-section-body > .finer-global-btn > .finer-global-btn-pm', function(e){ addPseudoMods(e) })
@@ -223,7 +248,10 @@
     }
 
     function addButtons(mod) {
-        if (updateMod(mod)) $(mod).append(buttonsSpan);
+        if (!updateMod(mod)) return;
+        const rollDetails = $(mod).children('.lc.l').first();
+        if (rollDetails.length) rollDetails.prepend(buttonsSpan);
+        else $(mod).append(buttonsSpan);
     }
 
     function addOrRemoveFilter(e, button) {
@@ -247,7 +275,7 @@
                 });
             }
             updateMod(mod);
-            $(mod).children('.finer-filter-buttons').detach();
+            buttonsSpan.detach();
             window.app.$refs.toastr?.Add({
                 msg: type === 'and' ? 'Mod added to your stat filters.' : 'Mod added to your exclusion filters.',
                 progressbar: false,
