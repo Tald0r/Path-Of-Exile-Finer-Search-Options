@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Poe trade finer-search-options
 // @namespace    http://tampermonkey.net/
-// @version      2.0.2
+// @version      2.0.3
 // @updateURL    https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @downloadURL  https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @description  enables finer search options in Path of exile official trade site, allowing filtering in/out mods directly from the current search result list
@@ -19,6 +19,10 @@
     //---------HTML---------//
     const scriptStyle=$(`
         <style>
+            #trade .resultset .item-mod > .lc.l > .d,
+            #trade .resultset .itemBoxContent > .content > div[class*="Mod"] > .lc.l > .d {
+                display: inline-block;
+            }
             #trade .finer-filter-buttons {
                 display: inline-flex;
                 gap: 2px;
