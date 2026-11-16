@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Poe trade finer-search-options
 // @namespace    http://tampermonkey.net/
-// @version      2.0.3
+// @version      2.1.0
 // @updateURL    https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @downloadURL  https://raw.githubusercontent.com/Tald0r/Path-Of-Exile-Finer-Search-Options/master/poe-finer-search-options.user.js
 // @description  enables finer search options in Path of exile official trade site, allowing filtering in/out mods directly from the current search result list
@@ -154,6 +154,11 @@
 
     const resultMod = '.item-mod, .itemBoxContent > .content > div[class*="Mod"]';
     const searchMod = resultMod.split(', ').map(selector => `#trade .resultset ${selector}`).join(', ');
+    const fuzzySearchInput = [
+        '#trade .search-select input.multiselect__input',
+        '#trade .search-advanced-items .filter-group-body .filter-select-mutate input.multiselect__input'
+    ].join(', ');
+
     const statId = mod => $(mod).children('[data-field^="stat."]').first().attr('data-field')?.slice(5);
     const createFilter = id => ({ id, value: {}, disabled: false });
     const hasStatFilter = (groups, id) => groups.some(group =>
@@ -184,6 +189,28 @@
 
     let $dragging = null;
     let offset = null;
+
+    function prefixFuzzySearch(event) {
+        const input = event.target;
+        if (event.isComposing || !input.matches?.(fuzzySearchInput)) return false;
+
+        const term = input.value.trimStart();
+        if (term === '~' && event.inputType?.startsWith('delete')) {
+            input.setRangeText('', 0, input.value.length, 'end');
+            return true;
+        }
+        if (!term || input.value.startsWith('~')) return false;
+
+        const leadingWhitespace = input.value.length - term.length;
+        input.setRangeText(term.startsWith('~') ? '' : '~', 0, leadingWhitespace, 'preserve');
+        return true;
+    }
+
+    // Capture edits before the site's autocomplete reads the input value.
+    document.addEventListener('input', prefixFuzzySearch, true);
+    document.addEventListener('compositionend', event => {
+        if (prefixFuzzySearch(event)) event.target.dispatchEvent(new Event('input', { bubbles: true }));
+    }, true);
 
     //document listeners
     $(document)
